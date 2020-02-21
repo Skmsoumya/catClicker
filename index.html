@@ -13,51 +13,83 @@
     </style>
 </head>
 <body>
-    <div class="catClicker">
-        <img src="./cat_images/1.jpg" alt="Cute Cat" id="catClickerImg">
-
-        <h3 id="catCounterMessage" hidden>You have clicked the cat: <span id="countHolder">0</span> Times</h3>
-
-        <h3 id="catNonClickedMessage" hidden>Come on! Click the cat.</h3>
+    <div class="catClicker" id="catsHolder">
     </div>
 
     <script>
+        const catsModel = [
+            {
+                name: "abc asda",
+                img: "./cat_images/1.jpg"
+            },
+            {
+                name: "CDEF",
+                img: "./cat_images/2.jpg"
+            }
+        ]
+
         const state = {
-            catClickCounter: 0,
-            catClickedMessageElem: null,
-            catNotClickedMessageElem: null,
-            clickCountHolderElem: null,
-            catClickerImage: null
+            cats: {}
         };
 
-        function reDrawUI(state) {
-            if(state.catClickCounter === 0) {
-                state.catClickedMessageElem.hidden = true;
-                state.catNotClickedMessageElem.hidden = false;
-            }
-            else {
-                state.clickCountHolderElem.innerHTML = state.catClickCounter;
-                state.catClickedMessageElem.hidden = false;
-                state.catNotClickedMessageElem.hidden = true;
-            }
+        const catsHolder = document.getElementById("catsHolder");
+
+        function getClickedMsg(clickCount) {
+            return clickCount > 0 ? (
+                `You have clicked the cat ${clickCount} times`
+            ) : (
+                `Come on! Click the cat already!`
+            );
         }
 
-        function addUserActionListener(clickerElement) {
-            clickerElement.addEventListener("click", () => {
-                state.catClickCounter = state.catClickCounter + 1;
-                reDrawUI(state);
+        function setInitialState(state, catsModel) {
+            catsModel.forEach(({name, img}) => {
+                state.cats[name.split(" ").join("_")] = {
+                    name,
+                    img,
+                    clickedCount: 0
+                }
             });
         }
 
-        function initialize() {
-            state.catClickerImage = document.getElementById("catClickerImg");
-            state.clickCountHolderElem = document.getElementById("countHolder");
-            state.catNotClickedMessageElem = document.getElementById("catNonClickedMessage");
-            state.catClickedMessageElem = document.getElementById("catCounterMessage");
-            state.catClickCounter = 0;
+        function updateClickCounter(event) {
+            let idOfClickedCat = event.target.name;
+            state.cats[idOfClickedCat].clickedCount = state.cats[idOfClickedCat].clickedCount + 1;
+            let catClickMsgHolderElem = document.getElementById(`${idOfClickedCat}_click_msg`);
+            catClickMsgHolderElem.innerHTML = getClickedMsg(state.cats[idOfClickedCat].clickedCount);
+        }
 
-            reDrawUI(state);
-            addUserActionListener(state.catClickerImage);
+        function drawInitialUI(state) {
+            for(let key in state.cats) {
+                let currentCat = state.cats[key];
+
+                let indiCatHolder = document.createElement("div");
+                let catImg = document.createElement("img");
+                let catClickedCountMessage = document.createElement("h3");
+                let catName = document.createElement("h2");
+
+                indiCatHolder.id = key;
+                
+                catImg.src = currentCat.img;
+                catImg.name = key;
+                catImg.alt = `Cute pic of ${currentCat.name}`;
+
+                catImg.addEventListener("click", updateClickCounter);
+
+                catClickedCountMessage.innerHTML = getClickedMsg(currentCat.clickedCount);
+                catClickedCountMessage.id = `${key}_click_msg`;
+
+                catName.innerHTML = `${currentCat.name}`;
+
+                indiCatHolder.append(catName, catImg, catClickedCountMessage);
+
+                catsHolder.appendChild(indiCatHolder);
+            }
+        }
+
+        function initialize() {
+            setInitialState(state, catsModel);
+            drawInitialUI(state);
         }
 
         window.onload = initialize;
