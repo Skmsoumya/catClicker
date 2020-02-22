@@ -10,28 +10,48 @@
         *[hidden] {
             display: none;
         }
+
+        .holder {
+            display: flex;
+        }
+
+        .catsNameDisplay {
+            flex-basis: 30%;
+        }
+
+        .catClicker {
+            flex-basis: 70%;
+        }
+
     </style>
 </head>
 <body>
-    <div class="catClicker" id="catsHolder">
-    </div>
 
+    <div class="holder">
+        <div class="catsNameDisplay" id="catsNameDisplay"></div>
+        <div class="catClicker" id="catsHolder"></div>
+    </div>
     <script>
 
         const catsModel = {
             initialCatsData:  [
                 {
-                    name: "abc asda",
+                    name: "Scarlet",
                     img: "./cat_images/1.jpg"
                 },
                 {
-                    name: "CDEF",
+                    name: "Hawk Eye",
                     img: "./cat_images/2.jpg"
+                },
+                {
+                    name: "Raptor",
+                    img: "./cat_images/3.jpg"
                 }
             ],
             cats: {},
+            currentSelectedCatId: null,
             initializeModel() {
-                this.initialCatsData.forEach(({name, img}) => {
+                this.initialCatsData.forEach(({name, img}, index) => {
                     let id = name.split(" ").join("_");
                     this.cats[id] = {
                         name,
@@ -39,6 +59,11 @@
                         id,
                         clicked: 0
                     };
+
+                    if(index === 0) {
+                        this.currentSelectedCatId = id;
+                    }
+                    
                 });
             },
             getAllCats() {
@@ -50,14 +75,30 @@
             getCatClickCountById(id) {
                 return this.cats.hasOwnProperty(id) ? this.cats[id].clicked : null;
             },
-            updateCatClickCountById(id) {
-                this.cats[id].clicked = this.cats[id].clicked + 1;
-                return this.cats[id].clicked;
-            }
+            incrementCurrentCatsCounter() {
+                this.cats[this.currentSelectedCatId].clicked = this.cats[this.currentSelectedCatId].clicked + 1;
+                return this.cats[this.currentSelectedCatId].clicked;
+            },
+            getCurrentSelectedCatId() {
+                return this.getCurrentSelectedCat;
+            },
+            getCurrentSelectedCat() {
+                return this.cats && this.currentSelectedCatId ? this.cats[this.currentSelectedCatId] : null;
+            },
+            selectCatById(id) {
+                if(this.cats.hasOwnProperty(id)) {
+                    this.currentSelectedCatId = id;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            },
         };
 
         const catsView = {
             catsHolder: null,
+            catsNameDisplay: null,
             clickedMsgHoldersMap: {},
             getClickedMsg(count) {
                 return count > 0 ? (
@@ -66,47 +107,63 @@
                     `Come on! Click the cat already!`
                 ); 
             },
-            initializeUI(catsList, clickListener) {
-                this.catsHolder = document.getElementById("catsHolder");
-                catsList.forEach(({name, id, img, clicked}) => {
-                    let indiCatHolder = document.createElement("div");
-                    let catImg = document.createElement("img");
-                    let catClickedCountMessage = document.createElement("h3");
-                    let catName = document.createElement("h2");
+            initializeCatsNamesDisplay(catsList, catSelectListener) {
+                this.catsNameDisplay = document.getElementById("catsNameDisplay");
 
-                    indiCatHolder.id = id;
+                catsList.forEach(({name, id}) => {
                     
-                    catImg.src = img;
-                    catImg.name = id;
-                    catImg.alt = `Cute pic of ${name}`;
+                    let nameClicker = document.createElement("h4");
+                    nameClicker.textContent = name;
+                    nameClicker.addEventListener("click", (function(idCopy) {
+                        return catSelectListener.bind({}, idCopy);
+                    })(id));
 
-                    catImg.addEventListener("click", clickListener);
-
-                    catClickedCountMessage.innerHTML = this.getClickedMsg(clicked);
-                    catClickedCountMessage.id = `${id}_click_msg`;
-
-                    catName.innerHTML = `${name}`;
-
-                    indiCatHolder.append(catName, catImg, catClickedCountMessage);
-
-                    this.clickedMsgHoldersMap[id] = catClickedCountMessage;
-                    this.catsHolder.appendChild(indiCatHolder);
+                    this.catsNameDisplay.append(nameClicker);
                 });
             },
-            updateClickMsg(id, count) {
-                this.clickedMsgHoldersMap[id].innerHTML = this.getClickedMsg(count);
+
+            initializeCatsImageDisplay(catClickListener) {
+                this.catsHolder = document.getElementById("catsHolder");
+                this.catImg = document.createElement("img");
+                this.catClickedCountMessage = document.createElement("h3");
+                this.catName = document.createElement("h2");
+                this.catImg.addEventListener("click", catClickListener);
+                this.catsHolder.append(this.catName, this.catImg, this.catClickedCountMessage);
+            },
+
+            initializeUI(catsList, catClickListener, catSelectListener) {
+                this.initializeCatsNamesDisplay(catsList, catSelectListener);
+                this.initializeCatsImageDisplay(catClickListener);
+            },
+
+            displayCat({name, id, img, clicked}, catImgClickListener) {
+                console.log(catImgClickListener);
+                this.catImg.name = name;
+                this.catImg.src = img;
+                this.catImg.alt = `Cute pic of ${name} cat`;
+
+                this.catName.textContent = name;
+                this.catClickedCountMessage.textContent = this.getClickedMsg(clicked);
+            },
+
+            updateClickMsg(newCount) {
+                this.catClickedCountMessage.textContent = this.getClickedMsg(newCount);
             }
         };
 
         const catsController = {
-            handleClick(event) {
-                let clickedCatId = event.target.name;
-                let newClickCount = catsModel.updateCatClickCountById(clickedCatId);
-                catsView.updateClickMsg(clickedCatId, newClickCount);
+            handleClick() {
+                catsView.updateClickMsg(catsModel.incrementCurrentCatsCounter());
+            },
+            handleCatSelect(selectedCatId) {
+                catsModel.selectCatById(selectedCatId);
+                catsView.displayCat(catsModel.getCurrentSelectedCat());
             },
             initialize() {
                 catsModel.initializeModel();
-                catsView.initializeUI(catsModel.getAllCats(), this.handleClick);
+                catsView.initializeUI(catsModel.getAllCats(), this.handleClick, this.handleCatSelect);
+
+                catsView.displayCat(catsModel.getCurrentSelectedCat());
             }
         };
 
