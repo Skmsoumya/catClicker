@@ -31,6 +31,32 @@
         <div class="catsNameDisplay" id="catsNameDisplay"></div>
         <div class="catClicker" id="catsHolder"></div>
     </div>
+
+    <div class="admin" id="adminHolder">
+        <button type="button" id="AdminViewToggleBtn" >Toggle Admin View</button>
+
+        <form id="catDataUpdationForm">
+            <div>
+                <label for="catNameInput">Cat Name Input</label>
+                <input id="catNameInput" type="text" name="Cat Name Input"/>
+            </div>
+
+            <div>
+                <label for="catImgUrlInput">Cat Image URL</label>
+                <input id="catImgUrlInput" type="text" name="Cat Url Input"/>
+            </div>
+
+            <div>
+                <label for="catClickedCountInput">Cat Clicked Count</label>
+                <input id="catClickedCountInput" type="number" name="Cat Clicked Count Input"/>
+            </div>
+
+            <div>
+                <button type="button" id="cancelAdminUpdateBtn">Cancel</button>
+                <button type="submit" id="submitFormDataBtn">Save</button>
+            </div>
+        </form>
+    </div>
     <script>
 
         const catsModel = {
@@ -50,6 +76,7 @@
             ],
             cats: {},
             currentSelectedCatId: null,
+            adminActive: false,
             initializeModel() {
                 this.initialCatsData.forEach(({name, img}, index) => {
                     let id = name.split(" ").join("_");
@@ -94,6 +121,17 @@
                     return false;
                 }
             },
+            toggleAdminActive() {
+                this.adminActive = !this.adminActive;
+                return this.adminActive;
+            },
+            updateCurrentCatData(name, img, clicked) {
+                
+                this.cats[this.currentSelectedCatId].name = name;
+                this.cats[this.currentSelectedCatId].img = img;
+                this.cats[this.currentSelectedCatId].clicked = clicked;
+                
+            }
         };
 
         const catsView = {
@@ -109,7 +147,7 @@
             },
             initializeCatsNamesDisplay(catsList, catSelectListener) {
                 this.catsNameDisplay = document.getElementById("catsNameDisplay");
-
+                this.catsNameDisplay.innerHTML = null;
                 catsList.forEach(({name, id}) => {
                     
                     let nameClicker = document.createElement("h4");
@@ -137,7 +175,7 @@
             },
 
             displayCat({name, id, img, clicked}, catImgClickListener) {
-                console.log(catImgClickListener);
+                
                 this.catImg.name = name;
                 this.catImg.src = img;
                 this.catImg.alt = `Cute pic of ${name} cat`;
@@ -148,6 +186,50 @@
 
             updateClickMsg(newCount) {
                 this.catClickedCountMessage.textContent = this.getClickedMsg(newCount);
+            }
+        };
+
+        const adminView = {
+            initialize(formSubmitHandler, adminScreenToggleHandler) {
+                this.adminToggleButton = document.getElementById("AdminViewToggleBtn");
+                this.adminCatDataForm = document.getElementById("catDataUpdationForm");
+                this.catNameInput = document.getElementById("catNameInput");
+                this.catImgUrlInput = document.getElementById("catImgUrlInput");
+                this.catClickedCountInput = document.getElementById("catClickedCountInput");
+                this.catDataSubmitBtn = document.getElementById("submitFormDataBtn");
+                this.adminUpdateCancelBtn = document.getElementById("cancelAdminUpdateBtn");
+
+                this.adminCatDataForm.addEventListener("submit", (event) => {
+                    formSubmitHandler(event);
+                });
+
+                this.adminToggleButton.addEventListener("click", (event) => {
+                    adminScreenToggleHandler(event);
+                });
+
+                this.adminUpdateCancelBtn.addEventListener("click", (event) => {
+                    adminScreenToggleHandler(event);
+                });
+            },
+            render(isAdminActive, currentCat) {
+                this.adminCatDataForm.hidden = !isAdminActive;
+                this.catNameInput.value = currentCat.name;
+                this.catImgUrlInput.value = currentCat.img;
+                this.catClickedCountInput.value = currentCat.clicked;
+            },
+            getUpdatedFormData() {
+                let v = {
+                    name: this.catNameInput.value,
+                    img: this.catImgUrlInput.value,
+                    clicked: parseInt(this.catClickedCountInput.value)
+                };
+                
+                return v;
+            },
+            clearFrom() {
+                this.catNameInput.value = null;
+                this.catImgUrlInput.value = null;
+                this.catClickedCountInput.value = null;
             }
         };
 
@@ -162,8 +244,25 @@
             initialize() {
                 catsModel.initializeModel();
                 catsView.initializeUI(catsModel.getAllCats(), this.handleClick, this.handleCatSelect);
-
+                adminView.initialize(this.formSubmitHandler.bind(this), this.toggleAdminScreen.bind(this));
+                
                 catsView.displayCat(catsModel.getCurrentSelectedCat());
+                adminView.render(catsModel.adminActive, catsModel.getCurrentSelectedCat());
+            },
+            formSubmitHandler(event) {
+                event.preventDefault();
+                let { name, img, clicked } = adminView.getUpdatedFormData();
+                
+                catsModel.updateCurrentCatData(name, img, clicked);
+                catsView.displayCat(catsModel.getCurrentSelectedCat(), this.handleClick);
+                catsView.initializeCatsNamesDisplay(catsModel.getAllCats(), this.handleCatSelect);
+
+                adminView.clearFrom();
+                this.toggleAdminScreen();
+                
+            },
+            toggleAdminScreen() {
+                adminView.render(catsModel.toggleAdminActive(), catsModel.getCurrentSelectedCat());
             }
         };
 
