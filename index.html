@@ -17,82 +17,100 @@
     </div>
 
     <script>
-        const catsModel = [
-            {
-                name: "abc asda",
-                img: "./cat_images/1.jpg"
-            },
-            {
-                name: "CDEF",
-                img: "./cat_images/2.jpg"
-            }
-        ]
 
-        const state = {
-            cats: {}
+        const catsModel = {
+            initialCatsData:  [
+                {
+                    name: "abc asda",
+                    img: "./cat_images/1.jpg"
+                },
+                {
+                    name: "CDEF",
+                    img: "./cat_images/2.jpg"
+                }
+            ],
+            cats: {},
+            initializeModel() {
+                this.initialCatsData.forEach(({name, img}) => {
+                    let id = name.split(" ").join("_");
+                    this.cats[id] = {
+                        name,
+                        img,
+                        id,
+                        clicked: 0
+                    };
+                });
+            },
+            getAllCats() {
+                return Object.values(this.cats);
+            },
+            getCatById(id) {
+                return this.cats.hasOwnProperty(id) ? this.cats[id] : null;
+            },
+            getCatClickCountById(id) {
+                return this.cats.hasOwnProperty(id) ? this.cats[id].clicked : null;
+            },
+            updateCatClickCountById(id) {
+                this.cats[id].clicked = this.cats[id].clicked + 1;
+                return this.cats[id].clicked;
+            }
         };
 
-        const catsHolder = document.getElementById("catsHolder");
+        const catsView = {
+            catsHolder: null,
+            clickedMsgHoldersMap: {},
+            getClickedMsg(count) {
+                return count > 0 ? (
+                    `You have clicked the cat ${count} times`
+                ) : (
+                    `Come on! Click the cat already!`
+                ); 
+            },
+            initializeUI(catsList, clickListener) {
+                this.catsHolder = document.getElementById("catsHolder");
+                catsList.forEach(({name, id, img, clicked}) => {
+                    let indiCatHolder = document.createElement("div");
+                    let catImg = document.createElement("img");
+                    let catClickedCountMessage = document.createElement("h3");
+                    let catName = document.createElement("h2");
 
-        function getClickedMsg(clickCount) {
-            return clickCount > 0 ? (
-                `You have clicked the cat ${clickCount} times`
-            ) : (
-                `Come on! Click the cat already!`
-            );
-        }
+                    indiCatHolder.id = id;
+                    
+                    catImg.src = img;
+                    catImg.name = id;
+                    catImg.alt = `Cute pic of ${name}`;
 
-        function setInitialState(state, catsModel) {
-            catsModel.forEach(({name, img}) => {
-                state.cats[name.split(" ").join("_")] = {
-                    name,
-                    img,
-                    clickedCount: 0
-                }
-            });
-        }
+                    catImg.addEventListener("click", clickListener);
 
-        function updateClickCounter(event) {
-            let idOfClickedCat = event.target.name;
-            state.cats[idOfClickedCat].clickedCount = state.cats[idOfClickedCat].clickedCount + 1;
-            let catClickMsgHolderElem = document.getElementById(`${idOfClickedCat}_click_msg`);
-            catClickMsgHolderElem.innerHTML = getClickedMsg(state.cats[idOfClickedCat].clickedCount);
-        }
+                    catClickedCountMessage.innerHTML = this.getClickedMsg(clicked);
+                    catClickedCountMessage.id = `${id}_click_msg`;
 
-        function drawInitialUI(state) {
-            for(let key in state.cats) {
-                let currentCat = state.cats[key];
+                    catName.innerHTML = `${name}`;
 
-                let indiCatHolder = document.createElement("div");
-                let catImg = document.createElement("img");
-                let catClickedCountMessage = document.createElement("h3");
-                let catName = document.createElement("h2");
+                    indiCatHolder.append(catName, catImg, catClickedCountMessage);
 
-                indiCatHolder.id = key;
-                
-                catImg.src = currentCat.img;
-                catImg.name = key;
-                catImg.alt = `Cute pic of ${currentCat.name}`;
-
-                catImg.addEventListener("click", updateClickCounter);
-
-                catClickedCountMessage.innerHTML = getClickedMsg(currentCat.clickedCount);
-                catClickedCountMessage.id = `${key}_click_msg`;
-
-                catName.innerHTML = `${currentCat.name}`;
-
-                indiCatHolder.append(catName, catImg, catClickedCountMessage);
-
-                catsHolder.appendChild(indiCatHolder);
+                    this.clickedMsgHoldersMap[id] = catClickedCountMessage;
+                    this.catsHolder.appendChild(indiCatHolder);
+                });
+            },
+            updateClickMsg(id, count) {
+                this.clickedMsgHoldersMap[id].innerHTML = this.getClickedMsg(count);
             }
-        }
+        };
 
-        function initialize() {
-            setInitialState(state, catsModel);
-            drawInitialUI(state);
-        }
+        const catsController = {
+            handleClick(event) {
+                let clickedCatId = event.target.name;
+                let newClickCount = catsModel.updateCatClickCountById(clickedCatId);
+                catsView.updateClickMsg(clickedCatId, newClickCount);
+            },
+            initialize() {
+                catsModel.initializeModel();
+                catsView.initializeUI(catsModel.getAllCats(), this.handleClick);
+            }
+        };
 
-        window.onload = initialize;
+        window.onload = () => {catsController.initialize()};
     </script>
 </body>
 </html>
